@@ -1,0 +1,96 @@
+1. Create a comma-separated list of ticket numbers for customers 15 through 20. Include at least the customer number
+and ticket number. Display the most recent ticket (highest ticket number) first. (2pts)
+
+
+SELECT custnum, string_agg(ticketnum,',') 
+	within group(order by ticketnum desc) tickets
+	FROM (Select DISTINCT custnum ,ticketnum 
+	from Ticket ) t
+WHERE custnum BETWEEN 15 AND 20
+GROUP BY custnum;
+
+2. Modify the query from question 1 to include the customer name instead of the customer number. Ensure that
+customer names that include “O’” or “Mc” are correctly capitalized. (2pts)
+
+SELECT CASE WHEN custname LIKE '%Mc%' THEN
+		left(custname,charindex('Mc',custname)+1)+
+		upper(substring(custname,charindex('Mc',custname)+2,1))+
+		substring(custname,charindex('Mc',custname)+3,
+			len(custname)-charindex('Mc',custname)-2 )
+	 WHEN custname LIKE '%O''%' THEN 
+            LEFT(custname, CHARINDEX('O''', custname) + 1) + 
+            UPPER(SUBSTRING(custname, CHARINDEX('O''', custname) + 2, 1)) + 
+            SUBSTRING(custname, CHARINDEX('O''', custname) + 3, LEN(custname) - CHARINDEX('O''', custname) + 2)
+        ELSE custname
+    END AS custname
+, string_agg(ticketnum,',') within group (order by ticketnum desc) tickets
+FROM (
+  SELECT DISTINCT custnum, ticketnum 
+  FROM Ticket
+) t
+INNER JOIN Customer ON t.custnum = Customer.custnum
+WHERE Customer.custnum BETWEEN 15 AND 20
+GROUP BY Customer.custnum, custname
+ORDER BY custname;
+
+
+
+3. Rank the support reps by last name in ascending alphabetical order. Ensure that the ranking restarts for each support
+role (reptitle). (2pts)
+
+
+SELECT RANK() OVER (PARTITION BY reptitle ORDER BY replname) AS ranking,
+      concat(repfname,' ', replname) as repname, reptitle
+FROM SupportRep;
+
+
+
+4. Create a view that contains the repid, retitle, and count of comments for each rep. Query the view to show that it was
+created successfully. (1pt)
+
+
+CREATE VIEW Q4view AS
+SELECT SupportRep.repid, SupportRep.reptitle, COUNT(TicketRepComment.ticketrepnum) AS commentnum
+FROM SupportRep
+JOIN TicketRep ON SupportRep.repid = TicketRep.repid
+JOIN TicketRepComment ON TicketRep.ticketrepnum = TicketRepComment.ticketrepnum
+GROUP BY SupportRep.repid, SupportRep.reptitle;
+
+select *
+from Q4view;
+
+5. Using the view created in step 4, rank the support reps by comment count (more comments should lead to a higher
+ranking/lower number) within each role/reptitle. (2pts)
+
+
+SELECT  Rank() OVER (PARTITION BY reptitle ORDER BY commentnum DESC) AS ranking, repid, reptitle, commentnum     
+FROM Q4view;
+
+
+6. Modify the query from question 5 to display only the most prolific commenter (those whose rank is 1) from each
+role/reptitle. (1pt)
+
+
+WITH Ranking AS (
+  SELECT repid, reptitle, commentnum,
+         Rank() OVER (PARTITION BY reptitle ORDER BY commentnum DESC) AS rank
+  FROM Q4view
+)
+SELECT repid, reptitle, commentnum
+FROM Ranking
+WHERE rank = 1
+ORDER BY reptitle;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
