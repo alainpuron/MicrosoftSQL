@@ -1,0 +1,47 @@
+-- Alain Puron
+-- SQL Server
+-- Using a while loop i inserted the days from 2023-01-01 to 2023-12-31. I inserted the day of the year ,the week of the year and the day of the week (Monday-Sunday).
+ I chose this appoach because it seem like the easiest and most logical to insert all the days and weeks of the year , instead of doing it manually which could have taken a long time to.
+My query would fail if the table schema is altered, for example, by removing or adding a column, the insert statements in the while loop will fail.If the data types of the columns are changed, such as making the Date column a datetime instead of a date, the insert statements will fail and  if the date literals in the insert statements are modified, the corresponding dates will not be included in the table, and the descriptions for those dates will not be added.
+
+
+
+DROP TABLE IF EXISTS DateReference;
+CREATE TABLE DateReference (
+    Date DATE PRIMARY KEY,
+    DayOfWeek VARCHAR(10) NULL,
+    WeekOfYear INT NULL,
+    DayOfYear INT NULL,
+    Description VARCHAR(20) NULL
+);
+
+DECLARE @StartDate DATE = '2023-01-01';
+DECLARE @EndDate DATE = '2023-12-31';
+
+WHILE @StartDate <= @EndDate
+BEGIN
+    INSERT INTO DateReference (Date, DayOfWeek, WeekOfYear, DayOfYear, description) 
+    VALUES (
+        @StartDate, 
+        DATENAME(WEEKDAY, @StartDate), 
+        DATEPART(WEEK, @StartDate),
+        DATEPART(DAYOFYEAR, @StartDate),
+        CASE 
+            WHEN @StartDate = '2023-02-14' THEN 'Valentine'
+            WHEN @StartDate = '2023-02-28' THEN 'My Birth Date'
+            WHEN @StartDate = '2023-05-04' THEN 'Star Wars day'
+            WHEN @StartDate = '2023-05-09' THEN 'Last day of the semester'
+            WHEN @StartDate = '2023-07-04' THEN 'Independence Day'
+            WHEN @StartDate = '2023-11-11' THEN 'Veterans Day'
+            WHEN @StartDate = '2023-12-25' THEN 'Christmas'
+            WHEN @StartDate = '2023-12-24' THEN 'Christmas Eve'
+            WHEN @StartDate = '2023-01-01' THEN 'New Year'
+            WHEN @StartDate = '2023-12-31' THEN 'New Year Eve'
+            ELSE ' '
+        END
+    );
+    SET @StartDate = DATEADD(DAY, 1, @StartDate);
+END;
+
+SELECT * FROM DateReference;
+

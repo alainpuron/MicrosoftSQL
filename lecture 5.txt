@@ -1,0 +1,75 @@
+1. Modify the appropriate query from the end of the Lecture 5 Notes in order to save that query
+as CustomerReferrals. (If you still have this view from CIS 243, please drop and recreate it to
+ensure that all data is correct)
+
+
+
+
+CREATE VIEW CustomerReferrals AS
+SELECT custnum, custname, companycontact, 
+	CASE WHEN ((custnum*123)%24)+1 >= custnum THEN NULL
+		ELSE ((custnum*123)%24)+1 
+	END referredby
+FROM Customer;
+
+select * from CustomerReferrals
+
+
+
+2. Using the CustomerReferrals view, create and run a Recursive CTE to find out how many
+“generations” of customers Support Services, Inc. has. Support Services, Inc. considers a
+customer who was not referred by another to be a 1st generation customer, those referred by 1st
+generation customers to be 2nd generation customers, those referred by 2nd generation
+customers to be 3rd generation, and so on. Display at least the customer name and generation
+
+
+WITH Recursive  AS (
+  SELECT custnum, custname, referredby, 1 AS generation
+  FROM CustomerReferrals
+  WHERE referredby IS NULL
+
+  UNION ALL
+
+  SELECT cr.custnum, cr.custname, cr.referredby, cg.generation + 1 AS generation
+  FROM CustomerReferrals cr
+  JOIN Recursive  cg ON cr.referredby = cg.custnum
+)
+SELECT custnum ,custname, referredby, generation
+FROM Recursive 
+ORDER BY generation;
+
+
+
+
+3. Modify the Recursive CTE from step 2 to display a message showing the connections from the
+first referrer to the last customer who became a client as a result of those referrals. Show all
+iterations/generations except the first.
+
+
+WITH Recursive  AS (
+  SELECT custnum, custname, referredby, 1 AS generation, CAST(custname AS VARCHAR(MAX)) AS referrer_chain
+  FROM CustomerReferrals
+  WHERE referredby IS NULL
+  UNION ALL
+  SELECT cr.custnum, cr.custname, cr.referredby, cg.generation + 1 AS generation,
+CAST(cg.referrer_chain + 
+      CASE 
+		when generation > 1
+		THEN ' who recommended us to ' + cr.custname 
+
+	    WHEN generation = 1 
+		THEN '  recommended us to ' + cr.custname 
+		else ''
+      END
+    AS VARCHAR(MAX)) AS referrer_chain
+
+  FROM CustomerReferrals cr
+  JOIN Recursive  cg ON cr.referredby = cg.custnum
+)
+SELECT referrer_chain
+FROM Recursive 
+WHERE generation > 1 ;
+
+
+
+

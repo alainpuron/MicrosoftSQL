@@ -1,0 +1,55 @@
+use US_covid19_cases_and_deaths;
+
+-- creates table to contain all data 
+-- table 1
+
+-- I created this table to insert all the information from the csv file.
+CREATE TABLE USCovidCasesAndDeaths (
+    submission_date DATE NOT NULL,
+    state varchar(3) NOT NULL,
+    total_cases INT not NULL,
+    confirmed_cases INT NULL,
+    probable_cases INT NULL,
+    new_cases INT not NULL,
+    new_probable_cases INT NULL,
+    total_deaths INT  not NULL,
+    confirmed_deaths INT NULL,
+    probable_deaths INT NULL,
+    new_deaths INT  not NULL,
+    new_probable_deaths INT NULL,
+    created_at DATETIME not NULL,
+    consent_cases VARCHAR(10) NULL,
+    consent_deaths VARCHAR(10) NULL
+);
+
+select * from USCovidCasesAndDeaths;
+
+-- inserts the data
+BULK INSERT USCovidCasesAndDeaths 
+FROM 'C:\Users\alain\OneDrive\Escritorio\Advance Sql\scenario problem 2\United_States_COVID-19_Cases_and_Deaths_by_State_over_Time_-_ARCHIVED.csv'
+WITH
+	(FIELDTERMINATOR = ',',
+	ROWTERMINATOR = '\n',
+	FIRSTROW = 2
+
+	);
+-- table for totals cases and deaths by state
+-- i created TotalCasesAndDeaths to separate the date ,state ,cases and deaths 
+create table TotalCasesAndDeaths(
+submission_date DATE NOT NULL,
+state varchar(3) NOT NULL,
+total_cases INT not NULL,
+total_deaths INT  not NULL,
+);
+
+-- queries  non traditinal where clause
+SELECT state, max(total_cases) as 'Total cases', max(total_deaths) as 'Total Deaths'
+FROM US_covid19_cases_and_deaths..USCovidCasesAndDeaths
+WHERE PATINDEX('[A-Z][A-Z][A-Z]', state) = 1
+GROUP BY state;
+
+SELECT state, max(total_cases) as 'Total cases', max(total_deaths) as 'Total Deaths'
+FROM US_covid19_cases_and_deaths..USCovidCasesAndDeaths
+WHERE LEFT(state, 2) = 'CA'
+OR SUBSTRING(state, 1, 2) = 'NY'
+GROUP BY state;

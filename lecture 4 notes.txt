@@ -1,0 +1,128 @@
+-- 1 In the SSIExtra database, create a table called RepCredential with two char(8) columns. The first column should be named repid, and the second should be reppw. The repid column should be the Primary Key. 
+
+CREATE TABLE RepCredential (
+    repid char(8) PRIMARY KEY,
+    reppw char(8)
+);
+
+-- 2 Import the data from repcred.txt into the RepCredential table. Be sure to look at the data first
+--in order to use the correct options. Query the table to ensure the data was loaded correctly.
+
+BULK INSERT RepCredential
+FROM 'C:\Users\alain\OneDrive\Escritorio\Advance Sql\lect4\repcred.txt'
+WITH
+	(FIELDTERMINATOR = ',',
+	ROWTERMINATOR = '\n'
+	);
+
+select * from RepCredential;
+
+-- 3 In the SSIExtra database, create a table called ProdImport with the following characteristics
+--   Also create tables named ProdData and ProdPatch with the appropriate columns
+create table ProdImport (
+prodname varchar(32),
+sourcepath varchar(27),
+patchnum char(8),
+patchfile varchar(37)
+);
+
+create table ProdData (
+prodcode varchar(6),
+sourcepath varchar(25)
+);
+
+create table ProdPatch(
+prodcode varchar(6),
+patchnum char(6),
+patchfile varchar(35)
+);
+
+-- 4 Determine the correct options and load the data from prodata.txt into the ProdImport table. If
+--you are using SQL Server, be sure to use a separate update to remove the quotation marks, and
+--shorten the value in the reppw column. Query the ProdImport table to verify the data was loaded
+--correctly.
+
+BULK INSERT ProdImport 
+FROM 'C:\Users\alain\OneDrive\Escritorio\Advance Sql\lect4\proddata.txt'
+WITH
+	(FIELDTERMINATOR = ',',
+	ROWTERMINATOR = '\n',
+	FIRSTROW = 2
+
+	);
+
+UPDATE ProdImport
+SET prodname = replace(prodname,'"',''),
+sourcepath = replace(sourcepath,'"',''),
+patchnum = replace(patchnum,'"',''),
+patchfile = replace(patchfile,'"','');
+
+select * from ProdImport;
+
+
+-- 5 Change to the SupportServices database and update the RepCredential table to use the correct repid. Verify the change by querying the table.
+
+UPDATE SSIExtra..RepCredential 
+    SET RepCredential.repid = SupportRep.repid
+	from SupportRep
+	WHERE Substring (SSIExtra..RepCredential.repid , 2,5) = SUBSTRING(SupportRep.repid , 5,8);
+
+select *
+from SSIExtra..RepCredential ;
+
+
+-- 6 From the Support Services database, load the appropriate information into the ProdPatch
+--table. Do the same for the ProdData table and ensure the appropriate field is defined as the
+--primary key. Don’t worry about a primary key for the ProdPatch table. Query both tables
+
+-- prodpatch 
+INSERT INTO SSIExtra..ProdPatch (prodcode, patchnum, patchfile)
+SELECT p.prodcode, pi.patchnum, pi.patchfile
+FROM Product p
+JOIN SSIExtra..ProdImport pi 
+ON pi.prodname = p.prodname
+where pi.patchnum != ' ' and pi.patchfile != ' ';
+
+select *
+from SSIExtra..ProdPatch;
+
+
+-- ProdData
+
+select *
+from SSIExtra..ProdData;
+
+ALTER TABLE SSIExtra..ProdData
+alter column prodcode varchar(6) not null;
+
+ALTER TABLE SSIExtra..ProdData
+ADD CONSTRAINT PK_ProdData PRIMARY KEY (prodcode);
+
+INSERT INTO SSIExtra..ProdData (prodcode, sourcepath)
+SELECT DISTINCT p.prodcode, pi.sourcepath
+FROM Product p
+JOIN SSIExtra..ProdImport pi ON p.prodname = pi.prodname;
+
+
+
+-- 7 Write and execute a query from the SupportServices database that displays the path but not
+--the file name (for example, this query should show Z:/prods/src/DSM as the path to the various
+--versions of the Data Storage Monitor software) to the each directory that contains source files.
+--List each path only once
+
+SELECT distinct LEFT(sourcepath, LEN(sourcepath) - CHARINDEX('/', REVERSE(sourcepath))) AS SourcePath
+FROM SSIExtra..ProdData;
+
+
+
+
+
+
+
+
+
+
+
+
+
+

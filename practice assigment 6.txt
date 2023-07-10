@@ -1,0 +1,84 @@
+1. Update the Customer table to encrypt the email field using the confirmation number created during the lecture as the
+key (creating a backup of the original emails is probably a good idea). Do not forget to make the appropriate
+datatype/length change to the contactemail column if necessary so that data is not lost. Query the Customer table to
+show that the contactemail field has been encrypted.
+
+-- making backup for customer 
+create table CustomerBK(
+custnum int primary key not null,
+custname varchar(65) null,
+companycontact varchar(65) null,
+contactphone varchar(12) not null,
+contactemail varchar(100) not null);
+
+INSERT INTO CustomerBK (custnum, custname, companycontact,contactphone,contactemail)
+SELECT custnum, custname, companycontact,contactphone,contactemail
+FROM Customer;
+
+
+-- backups
+select * from CustomerBK;
+
+
+UPDATE Customer 
+SET contactemail = bk.contactemail
+FROM Customer c
+JOIN CustomerBK bk
+	ON c.custnum = bk.custnum;
+
+select * from Customer;
+
+-- 1
+update customer
+set contactemail =  encryptbypassphrase(confirmationnum,contactemail);
+
+SELECT custnum ,encryptbypassphrase(confirmationnum,contactemail) as contactemail FROM Customer;
+
+
+2. Display the decrypted phone number and email for Dev Null, Inc. (Remember that we used the customer name as the
+key when encrypting the phone number during class).
+
+
+SELECT custname, 
+       CAST(DECRYPTBYPASSPHRASE(custname, contactphone) AS VARCHAR) AS phonenum, 
+       CAST(DECRYPTBYPASSPHRASE(confirmationnum, contactemail) AS VARCHAR) AS contactemail
+FROM Customer
+WHERE custname = 'Dev Null, Inc.';
+
+
+3. Alter the SupportRep table and add a column to store a password salt (use a column name of your choosing). Once the
+column has been added, generate a seperate numerical or hexidecimal salt for each employee. Query the SupportRep
+table to show that the column has been created and populated.
+
+ALTER TABLE SupportRep
+add  Salt INT NULL;
+
+UPDATE SupportRep
+SET Salt = ABS(CHECKSUM(CONVERT(VARCHAR(32), HASHBYTES('SHA1', CAST(TicketRepNum * RAND() AS VARCHAR)), 2)))
+FROM TicketRep
+WHERE SupportRep.RepId = TicketRep.RepId;
+
+select repid ,salt from SupportRep;
+
+4. Alter the RepCredential table in the SSIExtra database to add a reppassword column that is long enough to hold a
+hashed password. Update reppassword so that the password value is hashed using the salt from step 3. Once you verify
+that the passwords have been successfully hashed in the reppassword column, drop the reppw column. Query the
+RepCredential table to show that the changes have been made.
+
+ALTER TABLE SSIExtra..RepCredential ADD reppassword varchar(100) null;
+
+UPDATE rc
+SET reppassword = CONVERT(VARCHAR(100), HASHBYTES('SHA1', CAST(sr.Salt * RAND() AS VARCHAR)), 2)
+FROM SupportRep sr
+JOIN SSIExtra..RepCredential rc
+	ON sr.repid = rc.repid;
+
+SELECT repid, reppassword FROM SSIExtra..RepCredential;
+
+5. Verify that the password for Pedro Conner is B3Qgc!Ke.
+
+
+SELECT sr.repid, sr.replname, sr.repfname
+FROM SupportRep sr
+JOIN SSIExtra..RepCredential rc ON sr.repid = rc.repid
+WHERE rc.reppw = 'B3Qgc!Ke';

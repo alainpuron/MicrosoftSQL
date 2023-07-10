@@ -1,0 +1,48 @@
+Your supervisor is preparing a presentation and wants to create a graph showing when the three most
+recent tickets for each product were opened (or all tickets, if there are fewer than 3). Because this data
+needs to be used to create a graph in a spreadsheet program, the ticket dates for each product need to be
+provided on one line in chronological order
+
+
+
+
+SELECT top(3) prodname,
+       STRING_AGG(CONVERT(varchar(19), opendatetime, 120), ', ') WITHIN GROUP (ORDER BY opendatetime DESC) AS recent_dates
+FROM (
+  SELECT prodname, opendatetime,
+         ROW_NUMBER() OVER (PARTITION BY prodname ORDER BY opendatetime DESC) AS rn
+  FROM (
+    SELECT p.prodname, t.opendatetime
+    FROM product p
+    JOIN TicketProduct tp
+    ON p.prodcode = tp.prodcode
+    JOIN ticket t
+    ON tp.ticketnum = t.ticketnum
+  ) sub
+) sub2
+WHERE rn <= 3
+GROUP BY prodname
+order by recent_dates desc;
+
+
+or 
+
+
+
+SELECT  prodname,
+       STRING_AGG(CONVERT(varchar(19), opendatetime, 120), '  ,   ') WITHIN GROUP (ORDER BY opendatetime DESC) AS recent_dates
+FROM (
+  SELECT prodname, opendatetime,
+         RANK() OVER (PARTITION BY prodname ORDER BY opendatetime DESC) AS rank
+  FROM (
+    SELECT p.prodname, t.opendatetime
+    FROM product p
+    JOIN TicketProduct tp
+    ON p.prodcode = tp.prodcode
+    JOIN ticket t
+    ON tp.ticketnum = t.ticketnum
+  ) sub
+) sub2
+WHERE rank <= 3
+GROUP BY prodname
+ORDER BY recent_dates DESC;

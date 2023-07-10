@@ -1,0 +1,75 @@
+-- Alain Puron
+
+Exploration Question 2: Is there a support rep who seems to specialize in any particular product? You
+can determine the exact criteria for reaching this conclusion, but you might look at what percentage of
+a rep’s tickets are for a given product and/or whether that rep takes tickets for a product more than
+other reps do.
+
+-- Sql Server
+-- I get the percentage by dividing the sum of each product name that the representative worked on by the total of all the products done by the representative, then i multiply the result of the division by 100 to get the percentage. 
+I chose this approach because it seems the most logical to know what product each representative works on the most and the least.
+I don't think any changes would keep my answer from working unless there was no a connection between Supportrep and Product.
+
+
+
+-- first option
+Over and Partition By
+SELECT CONCAT(sr.repfname ,' ',  sr.replname) as 'Name', 
+       p.prodname ,
+     concat( cast(COUNT(p.prodname) * 100.0 / SUM(COUNT(p.prodname)) OVER (PARTITION BY sr.repid)as float ),'%')  as 'Percentage',
+      concat( COUNT(p.prodname) , '/', SUM(COUNT(p.prodname))  OVER (PARTITION BY sr.repid)  ) as 'Out of'
+FROM SupportRep sr
+JOIN TicketRep tr ON sr.repid = tr.repid
+JOIN Ticket t ON tr.ticketnum = t.ticketnum
+JOIN TicketProduct tp ON t.ticketnum = tp.ticketnum
+JOIN Product p ON tp.prodcode = p.prodcode
+GROUP BY sr.repid, CONCAT(sr.repfname, ' ', sr.replname), p.prodname
+ORDER BY sr.repid ASC, 'Percentage' asc;
+
+
+-- second option
+subqueries.
+Can be simplified if i remove the 'Out of' column and just leave the percentage .
+
+SELECT CONCAT(repfname ,' ',  replname) as 'Name',  p.prodname ,
+       CONCAT(CAST(COUNT(p.prodname) AS float) / -- the division 
+       (SELECT cast(SUM(product_count)  as float) -- gets the percentage
+        FROM (
+        SELECT CONCAT(repfname, ' ', replname) AS 'Name', 
+			p.prodname, 
+            COUNT(*) AS product_count
+            FROM SupportRep sr
+            JOIN TicketRep tr ON sr.repid = tr.repid
+            JOIN Ticket t ON tr.ticketnum = t.ticketnum
+            JOIN TicketProduct tp ON t.ticketnum = tp.ticketnum
+            JOIN Product p ON tp.prodcode = p.prodcode
+            GROUP BY CONCAT(repfname, ' ', replname), p.prodname
+            ) AS subq
+            WHERE subq.Name = CONCAT(repfname ,' ',  replname)
+			) * 100, '%') as 'Percentage', -- Gets the Percentage 
+			concat(count(prodname),' / ', (SELECT cast(SUM(product_count)  as float) -- gets the out of 
+            FROM (
+			SELECT CONCAT(repfname, ' ', replname) AS 'Name', 
+            p.prodname, 
+            COUNT(*) AS product_count
+                   FROM SupportRep sr
+                   JOIN TicketRep tr ON sr.repid = tr.repid
+                   JOIN Ticket t ON tr.ticketnum = t.ticketnum
+                   JOIN TicketProduct tp ON t.ticketnum = tp.ticketnum
+                   JOIN Product p ON tp.prodcode = p.prodcode
+                   GROUP BY CONCAT(repfname, ' ', replname), p.prodname
+               ) AS subq2
+			   WHERE subq2.Name = CONCAT(repfname ,' ',  replname)
+			   )) as 'Out of' -- gets the out of 
+FROM SupportRep sr
+JOIN TicketRep tr ON sr.repid = tr.repid
+JOIN Ticket t ON tr.ticketnum = t.ticketnum
+JOIN TicketProduct tp ON t.ticketnum = tp.ticketnum
+JOIN Product p ON tp.prodcode = p.prodcode
+GROUP BY CONCAT(repfname, ' ', replname) , prodname
+ORDER BY CONCAT(repfname, ' ', replname) ASC , 'Percentage' asc;
+
+
+
+
+

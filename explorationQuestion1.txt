@@ -1,0 +1,25 @@
+Alain Puron
+
+Exploration Question 1: Find all of the missing primary keys in the Ticket table. The missing values
+are 16, 17, 22, and 28, so, ideally, each of those numbers should be returned.
+
+1.SQL Server
+
+2.The ticketnum from ticket goes from 1 to 59 but it's missing some values , instead of looking for those values i created a table called MissingNumbers with a primary key that goes from 1 to 59. Then i make a select query that will only select those values from the MissingNumbers table that are NOT IN the Ticketnum Ticket table and that's i find the misssing primary keys. I chose this appoach because it's comparing numbers , if a number is not in it will let me know and that will be the missing primary key.My solution could not work if the ticketnum where random numbers and not a list from 1 to 59 , my solution could not work if letters where included and everything at a random order.
+
+3. 
+create table missingNumbers(
+MissingPrimary int primary key);
+
+DECLARE @i INT;
+set @i = 1;
+WHILE @i <= 59
+BEGIN
+    INSERT INTO missingNumbers(MissingPrimary) VALUES (@i);
+    SELECT @i = @i + 1;
+END;
+select * from missingNumbers;
+
+select MissingPrimary
+from missingNumbers
+where MissingPrimary not in (select ticketnum from ticket);

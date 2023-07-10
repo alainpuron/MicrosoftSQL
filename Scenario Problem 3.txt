@@ -1,0 +1,35 @@
+
+
+-- create table with fields
+
+Create table file_systems (
+FolderId varchar(10) null,
+FolderName varchar(25),
+ParentFolderID  varchar(10) null
+);
+
+-- insert the data from file
+BULK INSERT file_systems
+FROM 'C:\Users\alain\OneDrive\Escritorio\Advance Sql\Scenario Problem 3\file_system.txt'
+WITH
+	(FIELDTERMINATOR = ',',
+	ROWTERMINATOR = '\n',
+	FIRSTROW = 2
+
+	);
+
+select * from file_systems;
+
+
+-- view that displays the folders that are not in 
+create view FilesNotIn as
+SELECT distinct LEFT(ParentFolderID, LEN(ParentFolderID) - CHARINDEX('/', REVERSE(ParentFolderID))) AS Folders
+FROM file_systems
+where ParentFolderID not in (select sourcepath from  SSIExtra..ProdData) and FolderName not in (select patchfile from SSIExtra..ProdPatch );
+
+select * from FilesNotIn;
+
+
+
+
+
