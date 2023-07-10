@@ -1,0 +1,94 @@
+-- question 1
+For those support reps whose repid starts with a ‘T’, use a correlated subquery to find the
+number of hours that passed from being assigned their first ticket to subsequent tickets. (Hint:
+Use the assigntime column in the TicketRep table). You may use whichever time format you
+prefer for this question
+
+
+SELECT repid,
+       CONCAT(DATEDIFF(HOUR, 
+                       (SELECT MIN(assigntime) FROM TicketRep WHERE repid = t1.repid),
+                       assigntime), ':',
+               DATEDIFF(MINUTE, 
+                        (SELECT MIN(assigntime) FROM TicketRep WHERE repid = t1.repid),
+                        assigntime) % 60, ':',
+               DATEDIFF(SECOND, 
+                        (SELECT MIN(assigntime) FROM TicketRep WHERE repid = t1.repid),
+                        assigntime) % 60) AS time_since_1st_tkt
+FROM TicketRep t1
+WHERE repid LIKE 'T%'
+order by repid;
+
+
+-- question 2
+ For all closed high priority tickets, find the amount of time that ticket was open. Provide at
+least the ticket number and the amount of time it was open. Format the time using the
+HH:MM:SS format
+
+SELECT ticketnum,
+       CONCAT(DATEDIFF(SECOND, opendatetime, closedatetime) / 3600, ':',
+               DATEDIFF(SECOND, opendatetime, closedatetime) % 3600 / 60, ':',
+               DATEDIFF(SECOND, opendatetime, closedatetime) % 60) AS time_open
+FROM Ticket
+WHERE priority LIKE 'HIGH' AND closedatetime IS NOT NULL;
+
+-- question 3
+Write a query that displays the correct capitalization for customer names that contain “Mc”.
+
+SELECT 
+       LEFT(custname, CHARINDEX('Mc', custname) + 1) +
+       UPPER(SUBSTRING(custname, CHARINDEX('Mc', custname) + 2, 1)) +
+       SUBSTRING(custname, CHARINDEX('Mc', custname) + 3, LEN(custname) - CHARINDEX('Mc', custname) - 2) AS custname
+FROM Customer
+WHERE custname LIKE '%Mc%';
+
+-- question 4
+
+Modify the query from step 3 to correct the last names of those support reps whose last name
+starts with “Mc”. Also add the logic necessary to correctly capitalize hyphenated last names and
+to ensure all other names remain unmodified.
+
+SELECT 
+	CASE WHEN replname LIKE '%Mc%' THEN
+		left(replname,charindex('Mc',replname)+1)+
+		upper(substring(replname,charindex('Mc',replname)+2,1))+
+		substring(replname,charindex('Mc',replname)+3,
+			len(replname)-charindex('Mc',replname)-2 )
+	WHEN replname LIKE '%-%' THEN
+		left(replname,charindex('-',replname))+
+		upper(substring(replname,charindex('-',replname)+1,1))+
+		substring(replname,charindex('-',replname)+2,
+			len(replname)-charindex('-',replname)+1 )
+	 ELSE replname END replname
+FROM SupportRep;
+
+-- question 5
+
+Write a query that displays at least the repid and reptitle for each support rep. Order the
+results so that support techs are first, support leads are next, supervisors are third, and the
+development team is last. Within the first two groups, display Tier 1 first, followed by Tier 2 and
+then Tier 3
+
+SELECT repid, reptitle
+FROM SupportRep
+ORDER BY
+    CASE reptitle
+        WHEN 'Tier 1 Tech' THEN 1
+        WHEN 'Tier 2 Tech' THEN 2
+        WHEN 'Tier 3 Tech' THEN 3
+        WHEN 'Tier 1 Lead' THEN 4
+        WHEN 'Tier 2 Lead' THEN 5
+        WHEN 'Tier 3 Lead' THEN 6
+        WHEN 'Support Supervisor' THEN 7
+        WHEN 'Development' THEN 8
+    END;
+
+
+
+
+
+
+
+
+
+
