@@ -1,0 +1,93 @@
+1. Write two different queries that find all high priority tickets that mention “time out” or “timeout” in the description,
+all medium priority tickets where the description contains the words “report” or “reports”, and all low priory tickets with
+the words “activation code” in the description.
+
+
+a. Accomplish this task using one or more compound conditions. (2pts)
+
+Select ticketnum, priority , description
+from Ticket
+where priority like 'HiGH' and description like '%time out%' or description like '%timeout%'
+Or priority like 'MED' and description like '%report%' or description like '%reports%'
+Or priority like 'LOW' and description like '%activation code%';
+
+
+
+b. Use a CASE statement in the WHERE clause to find this information. (2pts)
+
+
+Select ticketnum, priority , description
+from Ticket
+where priority in ('HIGH','MED','LOW')
+and description like 
+Case priority  
+		WHEN 'HIGH' THEN  '%timeout%' 
+		WHEN 'HIGH' THEN  '%time out%' 
+
+		WHEN 'MED' THEN '%report%'
+		WHEN 'MED' THEN '%reports%'
+		WHEN 'LOW' THEN '%activation code%'
+		ELSE '%' END;
+
+
+2. Contractual obligations require Support Services, Inc. to close tickets for some customers within a specified time
+regardless of priority. For even numbered customers whose custnum is between 1 and 17, all tickets are supposed to be
+closed within 48 hours; for odd numbered customers between 1 and 17, tickets should be closed within 72 hours. Other
+customers do not have a contractual obligation specified, but company policy says they should be closed within 5 days
+(120 hours). Use compound conditions or an non-traditional where clause (your choice) to find all tickets where these
+deadlines were not met. (If you use a CASE statement, remember that the WHEN portion can be written just like any
+WHERE clause). (4pts)
+
+select ticketnum ,custnum ,datediff(HOUR,opendatetime,closedatetime) as timeopen
+from Ticket
+where datediff(HOUR,opendatetime,closedatetime) >
+case 
+when custnum between 1 and 17	and custnum % 2 = 0 then  48
+when custnum between 1 and 17 and custnum % 2 <> 0 then  72
+else  120
+end;
+
+ or 
+
+select ticketnum ,custnum ,datediff(SECOND,opendatetime,closedatetime)*1.0/(60*60) as timeopen
+from Ticket
+where datediff(SECOND,opendatetime,closedatetime)*1.0/(60*60) >
+case 
+when custnum between 1 and 17	and custnum % 2 = 0 then  48
+when custnum between 1 and 17 and custnum % 2 <> 0 then  72
+else  120
+end;
+
+or
+
+select ticketnum ,custnum ,datediff(HOUR,opendatetime,closedatetime) as timeopen
+from Ticket
+where (custnum between 1 and 17	and custnum % 2 = 0  and datediff(HOUR,opendatetime,closedatetime)  > 48)
+or (custnum between 1 and 17 and custnum % 2 <> 0 and datediff(HOUR,opendatetime,closedatetime)  > 72)
+or(custnum > 17 and datediff(HOUR,opendatetime,closedatetime)  > 120 )
+
+
+3. Is there a customer in the database who uses the same email provider as the customer after them? Use column
+addition and substrings in the WHERE clause to find any two sequential customer numbers where those customers have
+the same domain in their email (for example, if customers 9 and 10 both had @wahoo.com email addresses). (2pts)
+
+SELECT a.custnum, a.contactemail, b.custnum, b.contactemail
+FROM 
+  (SELECT custnum, contactemail,
+    SUBSTRING(contactemail, CHARINDEX('@', contactemail) + 1, LEN(contactemail)) as email_domain,
+    ROW_NUMBER() OVER (ORDER BY custnum) as row_number
+  FROM Customer) a
+JOIN 
+  (SELECT custnum, contactemail,
+    SUBSTRING(contactemail, CHARINDEX('@', contactemail) + 1, LEN(contactemail)) as email_domain,
+    ROW_NUMBER() OVER (ORDER BY custnum) as row_number
+  FROM Customer) b
+ON a.email_domain = b.email_domain
+AND a.row_number + 1 = b.row_number
+ORDER BY a.custnum;
+
+
+
+
+
+
